@@ -6,11 +6,9 @@ from src.storage import init_db
 from src import config
 from src.quota import get_calls_this_month, record_call, check_monthly_cap
 from src.ingestors import (
-    generate_indicators,
-    generate_indices,
-    insert_indicators,
-    insert_indices,
+    generate_indicators, generate_indices, insert_indicators, insert_indices
 )
+from src.checks import run_all_checks
 
 def ingest_last_30_days():
     run_id = str(uuid.uuid4())
@@ -20,15 +18,15 @@ def ingest_last_30_days():
 
     print(f"Starting run {run_id} for {from_date} -> {to_date}")
 
-    # --- generate demo datasets ---
     indicators = generate_indicators(from_date, to_date)
     indices = generate_indices(from_date, to_date)
 
-    # --- write to DuckDB ---
     inserted_indicators_total = insert_indicators(indicators)
     inserted_indices_total = insert_indices(indices)
 
-    # --- log the run ---
+    # run DQ checks
+    run_all_checks(run_id)
+
     con = duckdb.connect(config.DB_PATH)
     con.execute(
         """
@@ -37,20 +35,17 @@ def ingest_last_30_days():
         VALUES (?, 'demo', ?, ?, ?, ?, ?, ?, 'SUCCESS', NULL)
         """,
         [
-            run_id,
-            from_date,
-            to_date,
+            run_id, from_date, to_date,
             len(indicators) + len(indices),
-            0,  # no API calls yet
-            start,
-            datetime.now(timezone.utc),
+            0,  # API calls = 0 for demo
+            start, datetime.now(timezone.utc),
         ],
     )
     con.close()
 
-    print(f"✅ Inserted {len(indicators)} indicators rows, {len(indices)} indices rows")
-    print(f"📦 Table totals now: indicators_raw={inserted_indicators_total}, indices_raw={inserted_indices_total}")
-    print(f"✅ Run logged with run_id={run_id}")
+    print(f"✅ Inserted {len(indicators)} indicators, {len(indices)} indices")
+    print(f"📦 Totals now: indicators_raw={inserted_indicators_total}, indices_raw={inserted_indices_total}")
+    print(f"🔎 DQ checks recorded for run_id={run_id}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
