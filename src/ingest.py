@@ -5,7 +5,12 @@ import duckdb
 from src.storage import init_db
 from src import config
 from src.quota import get_calls_this_month, record_call, check_monthly_cap
-
+from src.ingestors import (
+    generate_indicators,
+    generate_indices,
+    insert_indicators,
+    insert_indices,
+)
 
 def ingest_last_30_days():
     run_id = str(uuid.uuid4())
@@ -15,18 +20,37 @@ def ingest_last_30_days():
 
     print(f"Starting run {run_id} for {from_date} -> {to_date}")
 
-    # placeholder log entry (we'll insert real data later)
+    # --- generate demo datasets ---
+    indicators = generate_indicators(from_date, to_date)
+    indices = generate_indices(from_date, to_date)
+
+    # --- write to DuckDB ---
+    inserted_indicators_total = insert_indicators(indicators)
+    inserted_indices_total = insert_indices(indices)
+
+    # --- log the run ---
     con = duckdb.connect(config.DB_PATH)
     con.execute(
         """
-        INSERT INTO ingestion_log VALUES (?, 'init', ?, ?, 0, 0, ?, ?, 'SUCCESS', NULL)
+        INSERT INTO ingestion_log
+        (run_id, dataset, from_date, to_date, rows_ingested, api_calls, started_at, ended_at, status, error)
+        VALUES (?, 'demo', ?, ?, ?, ?, ?, ?, 'SUCCESS', NULL)
         """,
-        [run_id, from_date, to_date, start, datetime.now(timezone.utc)],
+        [
+            run_id,
+            from_date,
+            to_date,
+            len(indicators) + len(indices),
+            0,  # no API calls yet
+            start,
+            datetime.now(timezone.utc),
+        ],
     )
     con.close()
 
-    print(f"Run logged with run_id={run_id}")
-
+    print(f"✅ Inserted {len(indicators)} indicators rows, {len(indices)} indices rows")
+    print(f"📦 Table totals now: indicators_raw={inserted_indicators_total}, indices_raw={inserted_indices_total}")
+    print(f"✅ Run logged with run_id={run_id}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
