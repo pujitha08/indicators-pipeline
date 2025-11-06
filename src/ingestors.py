@@ -21,7 +21,7 @@ class IndexRow:
     value: float
     source: str = "demo"
 
-# --- temporary generators (deterministic) ---
+# --- temporary generators ---
 def generate_indicators(from_date: date, to_date: date) -> List[IndicatorRow]:
     """Generate 2 demo indicators per day for [from_date, to_date]."""
     rows: List[IndicatorRow] = []

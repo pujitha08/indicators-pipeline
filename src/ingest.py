@@ -7,7 +7,7 @@ from src import config
 from src.quota import get_calls_this_month, record_call, check_monthly_cap
 from src.checks import run_all_checks
 
-# ✅ FRED adapter + client
+# FRED adapter + client
 from src.api_client import APIClient
 from src.fred_adapter import fetch_series_data, FRED_SERIES
 
