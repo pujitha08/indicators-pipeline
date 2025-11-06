@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv() 
 
 DB_PATH = os.getenv("DB_PATH", "./data/warehouse.duckdb")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.example.com")
